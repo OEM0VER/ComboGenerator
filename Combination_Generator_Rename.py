@@ -13,6 +13,8 @@ import threading
 import configparser
 import math
 import string
+import urllib.request
+import urllib.error
 
 def copy_files_to_new_folder(file_combination, output_folder):
     os.makedirs(output_folder, exist_ok=True)
@@ -77,12 +79,15 @@ class ToolTip:
             self.tooltip.destroy()
             self.tooltip = None
 
+MAX_RETRIES = 5
+BASE_DELAY = 3  # Initial delay in seconds
+
 class CombinationGeneratorApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Combination Generator by M0VER")
 
-        self.set_icon_from_url("https://i.imgur.com/FwXkUlj.png")
+        self.set_icon_from_url("https://static.wixstatic.com/media/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.png/v1/fit/w_138,h_114,q_90/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.webp")
 
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
@@ -249,9 +254,9 @@ class CombinationGeneratorApp:
         self.size_label.config(text="Estimated Output Size: 0.00 MB")
 
     def display_round_image(self):
-        image_url = "https://i.imgur.com/iUXqICO.png"
-        response = requests.get(image_url)
-        image_data = response.content
+        image_url = "https://static.wixstatic.com/media/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.png/v1/fit/w_256,h_256,q_90/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.webp"
+        with urllib.request.urlopen(image_url) as response:
+            image_data = response.read()
 
         image = Image.open(BytesIO(image_data))
         image = image.resize((100, 100))
