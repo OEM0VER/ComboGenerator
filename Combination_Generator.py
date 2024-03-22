@@ -12,28 +12,19 @@ import webbrowser
 import threading
 import configparser
 import math
-import string
+import urllib.request
+import urllib.error
+
 
 def copy_files_to_new_folder(file_combination, output_folder):
     os.makedirs(output_folder, exist_ok=True)
     for file_path in file_combination:
-        # Generate a random combination of numbers and letters
-        random_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        shutil.copy(file_path, output_folder)
 
-        # Get the file extension (if any)
-        _, file_extension = os.path.splitext(file_path)
-
-        # Create the new file name with the random suffix and the original extension
-        new_file_name = f"{random_suffix}{file_extension}"
-
-        # Create the full path for the new file
-        new_file_path = os.path.join(output_folder, new_file_name)
-
-        # Copy the file with the new name
-        shutil.copy(file_path, new_file_path)
 
 def get_combination_size(file_combination):
     return sum(os.path.getsize(file) for file in file_combination if os.path.isfile(file))
+
 
 def format_size(size_in_bytes):
     mb_size = size_in_bytes / (1024 * 1024)
@@ -44,6 +35,7 @@ def format_size(size_in_bytes):
     else:
         return f"{mb_size:.2f} MB"
 
+
 def show_popup_message(message):
     root = tk.Tk()
     root.withdraw()
@@ -51,6 +43,7 @@ def show_popup_message(message):
     root.lift()
     root.attributes('-topmost', True)
     root.after_idle(root.attributes, '-topmost', False)
+
 
 class ToolTip:
     def __init__(self, widget, description):
@@ -77,12 +70,15 @@ class ToolTip:
             self.tooltip.destroy()
             self.tooltip = None
 
+MAX_RETRIES = 5
+BASE_DELAY = 3  # Initial delay in seconds
+
 class CombinationGeneratorApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Combination Generator by M0VER")
 
-        self.set_icon_from_url("https://i.imgur.com/FwXkUlj.png")
+        self.set_icon_from_url("https://static.wixstatic.com/media/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.png/v1/fit/w_138,h_114,q_90/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.webp")
 
         screen_width = master.winfo_screenwidth()
         screen_height = master.winfo_screenheight()
@@ -95,6 +91,8 @@ class CombinationGeneratorApp:
 
         self.config_file = "config.ini"
         self.load_config()
+
+        self.request_counter = 0  # Counter to track the number of requests made
 
         self.input_folder_label = tk.Label(
             master, text="Input Folder:")
@@ -249,9 +247,9 @@ class CombinationGeneratorApp:
         self.size_label.config(text="Estimated Output Size: 0.00 MB")
 
     def display_round_image(self):
-        image_url = "https://i.imgur.com/iUXqICO.png"
-        response = requests.get(image_url)
-        image_data = response.content
+        image_url = "https://static.wixstatic.com/media/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.png/v1/fit/w_256,h_256,q_90/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.webp"
+        with urllib.request.urlopen(image_url) as response:
+            image_data = response.read()
 
         image = Image.open(BytesIO(image_data))
         image = image.resize((100, 100))
@@ -272,6 +270,8 @@ class CombinationGeneratorApp:
         image_label.bind("<Leave>", lambda event: self.change_cursor(""))
         image_label.bind("<Button-1>", lambda event: self.open_url(
             "https://www.nexusmods.com/users/105540373?tab=user+files"))
+
+        self.request_counter += 1
 
     def set_icon_from_url(self, icon_url):
         try:
@@ -330,6 +330,7 @@ class CombinationGeneratorApp:
     def on_closing(self):
         self.save_config()
         self.master.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
