@@ -87,6 +87,8 @@ class CombinationGeneratorApp:
         self.master = master
         self.master.title("Combination Generator by M0VER")
 
+        self.request_counter = 0  # Add this line to initialize request_counter
+
         self.set_icon_from_url("https://static.wixstatic.com/media/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.png/v1/fit/w_138,h_114,q_90/4db758_094b6a28cfb848f9b5d05dfd5e9627f3~mv2.webp")
 
         screen_width = master.winfo_screenwidth()
@@ -255,28 +257,38 @@ class CombinationGeneratorApp:
 
     def display_round_image(self):
         image_url = "https://static.wixstatic.com/media/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.png/v1/fit/w_256,h_256,q_90/4db758_14e6d6ac8107470d8136d8fbda34c56e~mv2.webp"
-        with urllib.request.urlopen(image_url) as response:
-            image_data = response.read()
+        retries = 0
+        while retries < MAX_RETRIES:
+            try:
+                with urllib.request.urlopen(image_url) as response:
+                    image_data = response.read()
+                image = Image.open(BytesIO(image_data))
+                image = image.resize((100, 100))
+                image = ImageOps.fit(
+                    image, (100, 100), method=0, bleed=0.0, centering=(0.5, 0.5))
+                mask = Image.new("L", (100, 100), 0)
+                draw = ImageDraw.Draw(mask)
+                draw.ellipse((0, 0, 100, 100), fill=255)
+                image.putalpha(mask)
+                photo = ImageTk.PhotoImage(image)
 
-        image = Image.open(BytesIO(image_data))
-        image = image.resize((100, 100))
-        image = ImageOps.fit(
-            image, (100, 100), method=0, bleed=0.0, centering=(0.5, 0.5))
-        mask = Image.new("L", (100, 100), 0)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0, 100, 100), fill=255)
-        image.putalpha(mask)
-        photo = ImageTk.PhotoImage(image)
+                image_label = tk.Label(
+                    self.master, image=photo, cursor="hand2")
+                image_label.photo = photo
+                image_label.grid(row=9, column=3, padx=10, pady=10, sticky="se")
 
-        image_label = tk.Label(
-            self.master, image=photo, cursor="hand2")
-        image_label.photo = photo
-        image_label.grid(row=9, column=3, padx=10, pady=10, sticky="se")
+                image_label.bind("<Enter>", lambda event: self.change_cursor("hand2"))
+                image_label.bind("<Leave>", lambda event: self.change_cursor(""))
+                image_label.bind("<Button-1>", lambda event: self.open_url(
+                    "https://www.nexusmods.com/users/105540373?tab=user+files"))
 
-        image_label.bind("<Enter>", lambda event: self.change_cursor("hand2"))
-        image_label.bind("<Leave>", lambda event: self.change_cursor(""))
-        image_label.bind("<Button-1>", lambda event: self.open_url(
-            "https://www.nexusmods.com/users/105540373?tab=user+files"))
+                self.request_counter += 1
+                break
+            except urllib.error.URLError as e:
+                retries += 1
+                time.sleep(BASE_DELAY * retries)
+        else:
+            print("Failed to download round image: Max retries exceeded")
 
     def set_icon_from_url(self, icon_url):
         try:
